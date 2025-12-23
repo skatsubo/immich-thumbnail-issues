@@ -1,10 +1,89 @@
 # Immich thumbnail issues
+- [Wrong thumbnail orientation despite the correct orientation info in the DB for images with XMP Orientation (embedded or sidecar) #24807](#wrong-thumbnail-orientation-despite-the-correct-orientation-info-in-the-db-for-images-with-xmp-orientation-embedded-or-sidecar-24807)
+  - [How to test Immich](#how-to-test-immich)
+  - [How to test sharp](#how-to-test-sharp)
+  - [How to generate test images](#how-to-generate-test-images)
 - [HEIC image thumbnail generation failure #22436](#heic-image-thumbnail-generation-failure-22436)
   - [How to](#how-to)
   - [Example output](#example-output)
 - [v1.142.0 immich\_server exited with code 139 #21883](#v11420-immich_server-exited-with-code-139-21883)
   - [How to](#how-to-1)
   - [Example output](#example-output-1)
+
+## Wrong thumbnail orientation despite the correct orientation info in the DB for images with XMP Orientation (embedded or sidecar) #24807
+
+Github issue: https://github.com/immich-app/immich/issues/24807.
+
+Purpose:
+- Generate images to reproduce the issue in Immich
+- Demonstrate that `sharp` does not apply (auto)rotation if orientation is defined only in `XMP-tiff:Orientation`
+
+### How to test Immich
+
+To test handling of `XMP-tiff:Orientation` vs `IFD0:Orientation` get two images from the `img` directory and import them into Immich.
+Check them in timeline or photo viewer:
+- the image with EXIF Orientation appears correctly oriented
+- the image with XMP Orientation is not rotated properly
+
+### How to test sharp
+
+Requirements: sharp (`npm install sharp`).
+
+Run:
+
+```sh
+cd issue-24807
+node sharp.js
+```
+
+<details><summary>Example output</summary>
+
+```
+== Apply sharp rotate(null) to files in directory ./img and save to ./sharp-output ==
+Sharp rotate: img-IFD0-6.jpg -> sharp-output/img-IFD0-6.jpg.sharp.rotate.jpg
+Sharp rotate: img-XMP-tiff-6.jpg -> sharp-output/img-XMP-tiff-6.jpg.sharp.rotate.jpg
+```
+</details>
+
+Check the auto-rotated images in `sharp-output`. The XMP one is not rotated properly.
+
+### How to generate test images
+
+Requirements: imagemagick, exiftool (`brew install imagemagick exiftool`).
+
+Run:
+
+```sh
+cd issue-24807
+bash generate.sh
+```
+
+<details><summary>Example output</summary>
+
+```
+== Create base image 1500x2500: img/base.jpg ==
+
+== Generate image with IFD0:Orientation ==
+1. Annotate image: IFD0:Orientation 6 / rotate 90°
+2. Inverse rotate image: rotate 270°
+3. Set tag: IFD0:Orientation=6
+    1 image files created
+Created: img/img-IFD0-6.jpg
+[IFD0]          Orientation                     : Rotate 90 CW
+[System]        File Name                       : img-IFD0-6.jpg
+
+== Generate image with XMP-tiff:Orientation ==
+1. Annotate image: XMP-tiff:Orientation 6 / rotate 90°
+2. Inverse rotate image: rotate 270°
+3. Set tag: XMP-tiff:Orientation=6
+    1 image files created
+Created: img/img-XMP-tiff-6.jpg
+[XMP-tiff]      Orientation                     : Rotate 90 CW
+[System]        File Name                       : img-XMP-tiff-6.jpg
+```
+</details>
+
+The generated images are saved to `img`. Use them to reproduce the issue.
 
 ## HEIC image thumbnail generation failure #22436
 
